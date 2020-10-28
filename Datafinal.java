@@ -5,6 +5,34 @@ import java.util.Queue;
 
 public class Datafinal {
 
+    private Precedence[] stack;
+    private int top;
+
+    private enum Precedence {
+        lparen(0), rparen(1), plus(2), minus(3), divide(4), times(5), mod(6), eos(7), operand(8);
+
+        private int index;
+
+        Precedence(int index) {
+            this.index = index;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+    }
+
+    private Precedence pop()
+    {
+        return stack[top--];
+    }
+    private void push(Precedence ele)
+    {
+        stack[++top] = ele;
+    }
+    private static final int[] isp = {0, 19, 12, 12, 13, 13, 13, 0};
+    private static final int[] icp = {20, 19, 12, 12, 13, 13, 13, 0};
+
     public Double evaluate(String expression) {
         Stack<Character> ops = new Stack<>();
         Queue<Double> numbers = new LinkedList<>();
@@ -45,8 +73,54 @@ public class Datafinal {
         return numbers.poll();
     }
 
-    public Character postfix(Character tokens){
-        return tokens;
+    private static final char[] operators = { '{', '}', '+', '-', '/', '*', '%', ' ' };
+
+    public Precedence getToken(char symbol)
+    {
+        switch (symbol)
+        {
+        case '('  : return Precedence.lparen;
+        case ')'  : return Precedence.rparen;
+        case '+'  : return Precedence.plus;
+        case '-'  : return Precedence.minus;
+        case '/'  : return Precedence.divide;
+        case '*'  : return Precedence.times;
+        case '%'  : return Precedence.mod;
+        case ' '  : return Precedence.eos;
+        default   : return Precedence.operand;
+        }
+    }
+
+    public String postfix(String tokens) {
+        String postfix = "";
+        top = 0;
+        stack = new Precedence[tokens.length()];
+        stack[0] = Precedence.eos;
+        Precedence token;
+        for (int i = 0; i < tokens.length(); i++) {
+            token = getToken(tokens.charAt(i));
+            /** if token is operand append to postfix **/
+            if (token == Precedence.operand)
+                postfix = postfix + tokens.charAt(i);
+            /** if token is right parenthesis pop till matching left parenthesis **/
+            else if (token == Precedence.rparen) {
+                while (stack[top] != Precedence.lparen)
+                    postfix = postfix + operators[pop().getIndex()];
+                /** discard left parenthesis **/
+                pop();
+            }
+            /** else pop stack elements whose precedence is greater than that of token **/
+            else {
+                while (isp[stack[top].getIndex()] >= icp[token.getIndex()])
+                    postfix = postfix + operators[pop().getIndex()];
+                push(token);
+            }
+        }
+        /** pop any remaining elements in stack **/
+        while ((token = pop()) != Precedence.eos)
+            postfix = postfix + operators[token.getIndex()];
+
+        return postfix;
     }
 
     public double performOperation(Queue<Double> numbers, Stack<Character> ops) {
@@ -106,14 +180,15 @@ public class Datafinal {
             String tokens = input.nextLine();
             System.out.print("Infix : " + tokens);
             System.out.println();
-            System.out.print("Postfix :");
+            String postfix = result.postfix(tokens);
+            System.out.print("Postfix :" + postfix);
             System.out.println();
             System.out.print("Stack Data : ");
             System.out.println();
             System.out.print("Queue Data : ");
             System.out.println();
             System.out.print("Result : " + result.evaluate(tokens));
-        } finally{
+        } finally {
             input.close();
         }
 
